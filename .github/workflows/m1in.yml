@@ -1,0 +1,74 @@
+name: ESP32 Firmware Build
+
+on:
+  push:
+    branches:
+      - main  # o qualsiasi altra branch su cui vuoi eseguire il workflow
+  pull_request:
+    branches:
+      - main  # o qualsiasi altra branch su cui vuoi eseguire il workflow
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Puoi cambiare questo in base al tuo sistema operativo, esempio windows-latest, macos-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  # Usa una versione di Python compatibile con ESP-IDF
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git \
+          wget \
+          curl \
+          make \
+          gcc \
+          g++ \
+          unzip \
+          libtool \
+          autoconf \
+          automake \
+          libncurses5-dev \
+          libssl-dev \
+          flex \
+          bison \
+          gperf \
+          ccache \
+          python3-serial \
+          libffi-dev \
+          libusb-1.0-0-dev \
+          pkg-config \
+          libncurses-dev \
+          zlib1g-dev
+          
+    - name: Install ESP-IDF
+      run: |
+        git clone --recursive https://github.com/espressif/esp-idf.git
+        cd esp-idf
+        ./install.sh  # Per Linux, o puoi usare ./install.bat su Windows
+
+    - name: Set up ESP-IDF environment
+      run: |
+        echo "export IDF_PATH=\$HOME/esp-idf" >> $GITHUB_ENV
+        source $HOME/esp-idf/export.sh
+
+    - name: Build the project
+      run: |
+        cd $GITHUB_WORKSPACE  # Assicurati di essere nella cartella del tuo progetto
+        idf.py set-target esp32  # Sostituisci con il target giusto per il tuo dispositivo
+        idf.py menuconfig  # Puoi saltare se hai già configurato il progetto in precedenza
+        idf.py build  # Costruisce il firmware
+
+    - name: Upload firmware binary
+      uses: actions/upload-artifact@v2
+      with:
+        name: firmware-bin
+        path: build/firmware.bin  # Sostituisci con il nome corretto del file .bin generato
+
